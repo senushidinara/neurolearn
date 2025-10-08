@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuroLearn Gaia Demo</title>
+    <!-- Load Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Three.js for the 3D Globe -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        /* Custom Neon/Dark Theme and Globals */
+        :root {
+            --neon-green: #39ff14;
+            --dark-bg: #111827;
+            --secondary-bg: #1f2937;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-bg);
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        /* Styling the 3D Canvas */
+        #gaia-globe-container {
+            width: 100%;
+            height: 50vh; /* Responsive height for mobile/dashboard view */
+            background-color: transparent;
+            border-radius: 1.5rem;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(57, 255, 20, 0.2);
+        }
+        
+        canvas {
+            display: block;
+        }
+
+        /* Neon Accent Styling */
+        .neon-border {
+            border: 2px solid var(--neon-green);
+            box-shadow: 0 0 10px var(--neon-green);
+        }
+        .neon-text {
+            color: var(--neon-green);
+            text-shadow: 0 0 5px rgba(57, 255, 20, 0.7);
+        }
+        
+        /* Emotion Meter Gauge Simulation */
+        .gauge-inner {
+            transition: height 0.5s ease-in-out;
+            background: linear-gradient(to top, #ef4444 0%, #f97316 50%, #22c55e 100%);
+        }
+        
+        /* Utility for mobile responsiveness (simulating pages) */
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <script>
+        // --- GLOBAL STATE SIMULATION (Replacing React State) ---
+        let gaiaCoins = 500;
+        let planetStressScore = 75; // Out of 100
+        let currentEmotion = { mood: 'Neutral', score: 0.5 };
+        let activePage = 'home';
+        
+        // --- THREE.JS GLOBE SETUP (Replacing GaiaGlobe.jsx) ---
+        let scene, camera, renderer, globe, stressMarkers = [];
+        const globeData = [
+            { id: 'city', name: 'Smart City Grid', lat: 35, lon: -100, color: 0xff0000, stress: 0.8 },
+            { id: 'agri', name: 'AgriTech Farms', lat: -20, lon: 130, color: 0xffff00, stress: 0.5 },
+            { id: 'ethics', name: 'Ethics Zone 404', lat: 50, lon: 10, color: 0x00ff00, stress: 0.2 },
+        ];
+        
+        function initGlobe() {
+            const container = document.getElementById('gaia-globe-container');
+            if (!container) return;
+
+            // Scene setup
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+            
+            // Globe (Earth)
+            const geometry = new THREE.SphereGeometry(1, 64, 64);
+            const material = new THREE.MeshBasicMaterial({ color: 0x000033, wireframe: true });
+            globe = new THREE.Mesh(geometry, material);
+            scene.add(globe);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 5); // soft white light
+            scene.add(ambientLight);
+
+            // Camera positioning
+            camera.position.z = 2;
+
+            // Add Stress Markers
+            globeData.forEach(data => {
+                const marker = addMarker(data.lat, data.lon, data.color, data.stress);
+                marker.userData = data; // Attach data for interaction
+                stressMarkers.push(marker);
+                globe.add(marker);
+            });
+
+            window.addEventListener('resize', onWindowResize, false);
+            container.addEventListener('click', onGlobeClick, false);
+            
+            animateGlobe();
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('gaia-globe-container');
+            if (!container) return;
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animateGlobe() {
+            requestAnimationFrame(animateGlobe);
+            if (globe) {
+                // Gentle rotation
+                globe.rotation.y += 0.001; 
+                
+                // Animate markers (simulating pulse based on stress)
+                stressMarkers.forEach(marker => {
+                    const scale = 0.05 + marker.userData.stress * 0.1 * (1 + Math.sin(Date.now() * 0.005));
+                    marker.scale.set(scale, scale, scale);
+                });
+            }
+            renderer.render(scene, camera);
+        }
+
+        // Convert lat/lon to 3D coordinates
+        function latLonToVector3(lat, lon, radius = 1) {
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (lon + 180) * (Math.PI / 180);
+            const x = -(radius * Math.sin(phi) * Math.cos(theta));
+            const z = (radius * Math.sin(phi) * Math.sin(theta));
+            const y = (radius * Math.cos(phi));
+            return new THREE.Vector3(x, y, z);
+        }
+
+        // Add a sphere marker to the globe
+        function addMarker(lat, lon, color, stress) {
+            const radius = 0.02;
+            const geometry = new THREE.SphereGeometry(radius, 16, 16);
+            const material = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.9 });
+            const mesh = new THREE.Mesh(geometry, material);
+            const position = latLonToVector3(lat, lon);
+            mesh.position.copy(position);
+            return mesh;
+        }
+
+        // Raycasting for interaction (Simulating Click Regions)
+        function onGlobeClick(event) {
+            const container = document.getElementById('gaia-globe-container');
+            const rect = container.getBoundingClientRect();
+            
+            // Normalized Device Coordinates (NDC)
+            const mouse = new THREE.Vector2();
+            mouse.x = ((event.clientX - rect.left) / container.clientWidth) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / container.clientHeight) * 2 + 1;
+
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+
+            // Check intersection with stress markers
+            const intersects = raycaster.intersectObjects(stressMarkers);
+
+            if (intersects.length > 0) {
+                const clickedMarker = intersects[0].object;
+                const data = clickedMarker.userData;
+                showScenarioCard(data);
+            }
+        }
+        
+        // --- JAVASCRIPT LOGIC (Replacing Pages, Hooks, Services) ---
+
+        // Simple Page Routing
+        function navigate(pageId) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            const newPage = document.getElementById(pageId);
+            if (newPage) {
+                newPage.classList.add('active');
+                activePage = pageId;
+                if (pageId === 'dashboard' && !scene) {
+                    // Initialize Three.js only when entering the dashboard
+                    setTimeout(initGlobe, 50); 
+                }
+            }
+        }
+
+        // Update UI Elements
+        function updateUI() {
+            document.getElementById('gaia-coins').textContent = gaiaCoins;
+            document.getElementById('planet-stress-score').textContent = planetStressScore.toFixed(0);
+            
+            // Emotion Meter Update
+            const emotionPercentage = Math.round(currentEmotion.score * 100);
+            const gauge = document.getElementById('emotion-gauge');
+            const emoji = document.getElementById('emotion-emoji');
+            
+            if (gauge) gauge.style.height = `${emotionPercentage}%`;
+            if (emoji) emoji.textContent = getEmoji(currentEmotion.mood);
+
+            // Stress Score Color Coding (Red/Yellow/Green)
+            const stressText = document.getElementById('planet-stress-score-text');
+            stressText.className = 'text-5xl font-extrabold transition-colors duration-500';
+            if (planetStressScore > 70) {
+                stressText.classList.add('text-red-500');
+            } else if (planetStressScore > 40) {
+                stressText.classList.add('text-yellow-500');
+            } else {
+                stressText.classList.add('text-green-500');
+            }
+            
+            // Scenario Card visibility
+            const scenarioCard = document.getElementById('scenario-card');
+            if (activePage !== 'dashboard') {
+                scenarioCard.classList.add('hidden');
+            }
+        }
+        
+        // Emotion Simulation (Replacing useEmotion.js and EmotionAI.js)
+        function getEmoji(mood) {
+            switch (mood) {
+                case 'Joy': return '😊';
+                case 'Neutral': return '😐';
+                case 'Anger': return '😡';
+                case 'Focus': return '🧐';
+                case 'Distress': return '😟';
+                default: return '🤔';
+            }
+        }
+
+        function simulateEmotionUpdate() {
+            // Cycle through demo emotions for effect
+            const moods = ['Joy', 'Neutral', 'Focus', 'Distress'];
+            const randomMood = moods[Math.floor(Math.random() * moods.length)];
+            currentEmotion = { 
+                mood: randomMood, 
+                score: randomMood === 'Focus' ? 0.9 : (Math.random() * 0.6 + 0.2) // Focus is high score
+            };
+            updateUI();
+        }
+        
+        // Scenario Card Logic (Replacing ScenarioCard.jsx)
+        function showScenarioCard(data) {
+            const card = document.getElementById('scenario-card');
+            document.getElementById('scenario-title').textContent = data.name;
+            document.getElementById('scenario-desc').textContent = 
+                `Critical Stress Level Detected (${(data.stress * 100).toFixed(0)}%). Recommend immediate action for ${data.id.toUpperCase()} zone.`;
+            
+            // Populate action buttons based on scenario type
+            const actionContainer = document.getElementById('scenario-actions');
+            actionContainer.innerHTML = '';
+
+            const action1 = document.createElement('button');
+            action1.className = 'action-btn bg-green-600 hover:bg-green-700';
+            action1.textContent = `Action A: Sustainable Choice (+100 Coins)`;
+            action1.onclick = () => processAction(100, -5, data.id);
+            actionContainer.appendChild(action1);
+
+            const action2 = document.createElement('button');
+            action2.className = 'action-btn bg-red-600 hover:bg-red-700';
+            action2.textContent = `Action B: Short-Term Fix (-50 Coins)`;
+            action2.onclick = () => processAction(-50, 10, data.id);
+            actionContainer.appendChild(action2);
+
+            card.classList.remove('hidden');
+        }
+
+        // Process Action (Replacing ModuleAPI.js and GaiaMetrics.js)
+        function processAction(coinChange, stressChange, markerId) {
+            gaiaCoins += coinChange;
+            
+            // Find the corresponding marker data to update its stress
+            const markerData = globeData.find(d => d.id === markerId);
+            if (markerData) {
+                // The stress change is divided by 10 for visual effect
+                markerData.stress = Math.max(0.1, Math.min(1.0, markerData.stress + stressChange / 10)); 
+            }
+            
+            // Update global score, smoothing the planet's average stress
+            const newAvgStress = globeData.reduce((sum, d) => sum + d.stress, 0) / globeData.length;
+            planetStressScore = newAvgStress * 100;
+
+            const message = coinChange > 0 ? 
+                `SUCCESS! +${coinChange} Gaia Coins awarded.` : 
+                `IMPACT! -${coinChange} Gaia Coins and planet stress increased.`;
+
+            showNotification(message, coinChange > 0 ? 'bg-green-500' : 'bg-red-500');
+            
+            document.getElementById('scenario-card').classList.add('hidden');
+            updateUI(); // Redraw UI and globe markers
+        }
+
+        // Notification Service (Replacing NotificationService.js)
+        function showNotification(message, colorClass = 'bg-blue-500') {
+            const notification = document.getElementById('notification-toast');
+            notification.textContent = message;
+            notification.className = `fixed bottom-5 left-1/2 -translate-x-1/2 p-4 rounded-lg shadow-2xl z-50 transition-all duration-300 ${colorClass}`;
+            notification.classList.remove('hidden');
+
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 3000);
+        }
+
+        // --- INITIALIZATION ---
+        window.onload = function() {
+            updateUI();
+            
+            // Set up interval for simulated emotion updates
+            setInterval(simulateEmotionUpdate, 2000);
+
+            // Initial navigation based on start state
+            if (activePage === 'home') {
+                navigate('home');
+            } else {
+                navigate('dashboard');
+            }
+            
+            // Set up button listeners for navigation
+            document.getElementById('launch-demo-btn').addEventListener('click', () => navigate('dashboard'));
+            document.getElementById('nav-dashboard').addEventListener('click', () => navigate('dashboard'));
+            document.getElementById('nav-modules').addEventListener('click', () => navigate('modules'));
+            document.getElementById('nav-leaderboard').addEventListener('click', () => navigate('leaderboard'));
+
+        };
+    </script>
+
+    <!-- Notification Toast (Always on top) -->
+    <div id="notification-toast" class="hidden"></div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div class="min-h-screen flex flex-col">
+
+        <!-- 1. NAVBAR (Hackathon-ready header) -->
+        <header class="p-4 bg-secondary-bg shadow-lg z-10 sticky top-0">
+            <div class="flex justify-between items-center max-w-7xl mx-auto">
+                <div class="flex items-center space-x-2">
+                    <span class="text-xl font-bold neon-text">NeuroLearn Gaia</span>
+                </div>
+                <!-- Navigation Tabs (Hidden on Mobile, simplified for demo) -->
+                <nav class="hidden sm:flex space-x-6">
+                    <button id="nav-dashboard" class="text-white hover:neon-text transition duration-200">Dashboard</button>
+                    <button id="nav-modules" class="text-white hover:neon-text transition duration-200">Modules</button>
+                    <button id="nav-leaderboard" class="text-white hover:neon-text transition duration-200">Leaderboard</button>
+                </nav>
+                <!-- RewardBadge (Gaia Coins) -->
+                <div class="flex items-center space-x-2 p-2 neon-border rounded-full bg-gray-800">
+                    <span class="text-yellow-400 text-lg">💰</span>
+                    <span id="gaia-coins" class="font-mono text-lg">500</span>
+                    <span class="text-sm text-gray-400">Coins</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- 2. MAIN CONTENT AREA (Page Switcher) -->
+        <main class="flex-grow p-4 sm:p-8 max-w-7xl mx-auto w-full">
+
+            <!-- HOME PAGE (Landing Page) -->
+            <div id="home" class="page active text-center py-20">
+                <h1 class="text-6xl font-extrabold mb-4 neon-text">NeuroLearn Gaia</h1>
+                <p class="text-xl mb-8 text-gray-300">Empowering ethical action through emotional learning and global simulation.</p>
+                <div class="text-5xl mb-12">🌍🧠✨</div>
+                <button id="launch-demo-btn" class="px-8 py-4 text-xl font-bold rounded-full neon-border bg-gray-800 hover:bg-gray-700 transition duration-300">
+                    Launch Live Demo
+                </button>
+                <p class="mt-8 text-sm text-gray-500">Hackathon Ready: Dashboard, Globe, Emotion AI Simulation.</p>
+            </div>
+
+            <!-- DASHBOARD PAGE (Interactive Globe + Analytics + ECS) -->
+            <div id="dashboard" class="page grid grid-cols-1 lg:grid-cols-4 gap-8">
+                
+                <!-- COLUMN 1 & 2: GAIA GLOBE (Main Visualization) -->
+                <div class="lg:col-span-3 rounded-2xl bg-secondary-bg p-4 h-full flex flex-col">
+                    <h2 class="text-2xl font-semibold mb-4 text-center">Interactive Gaia Globe Simulation</h2>
+                    <!-- Globe Container (Three.js will render here) -->
+                    <div id="gaia-globe-container" class="flex-grow min-h-[300px]">
+                        <!-- Three.js content -->
+                    </div>
+                </div>
+
+                <!-- COLUMN 3: ECS & EMOTION METER -->
+                <div class="lg:col-span-1 space-y-8">
+                    
+                    <!-- Planet Stress Score (GaiaMetrics.js equivalent) -->
+                    <div class="bg-secondary-bg p-6 rounded-xl neon-border">
+                        <p class="text-lg text-gray-400 mb-2">Global Impact Score</p>
+                        <div id="planet-stress-score-text" class="text-5xl font-extrabold transition-colors duration-500">
+                            <span id="planet-stress-score">75</span>%
+                        </div>
+                        <p class="text-sm mt-2">Stress Level (Lower is Better)</p>
+                    </div>
+
+                    <!-- Emotion Meter (EmotionMeter.jsx equivalent) -->
+                    <div class="bg-secondary-bg p-6 rounded-xl neon-border relative h-48">
+                        <p class="text-lg text-gray-400 mb-2">Real-time Emotional Learning Score (ELS)</p>
+                        <div class="flex items-center justify-between h-full">
+                            <!-- Gauge -->
+                            <div class="h-full w-4 bg-gray-700 rounded-full overflow-hidden self-end relative">
+                                <div id="emotion-gauge" class="gauge-inner w-full absolute bottom-0"></div>
+                            </div>
+                            
+                            <!-- Current Emotion -->
+                            <div class="text-center">
+                                <span id="emotion-emoji" class="text-7xl block mb-2 transition-all duration-500">😐</span>
+                                <span class="text-lg text-gray-300">Current Mood: <span class="font-bold">${currentEmotion.mood}</span></span>
+                            </div>
+                        </div>
+                        <p class="absolute bottom-2 right-2 text-xs text-gray-500">Simulated AI Inference</p>
+                    </div>
+                </div>
+
+                <!-- Scenario Card (ScenarioCard.jsx equivalent - Hidden by default) -->
+                <div id="scenario-card" class="absolute inset-0 bg-secondary-bg/95 backdrop-blur-sm z-20 p-8 rounded-2xl shadow-2xl hidden lg:col-span-4 self-start max-w-xl mx-auto transition-opacity duration-300">
+                    <h3 id="scenario-title" class="text-3xl font-bold mb-4 neon-text">Scenario Title</h3>
+                    <p id="scenario-desc" class="text-gray-300 mb-6">Scenario Description</p>
+                    <div id="scenario-actions" class="flex flex-col space-y-4">
+                        <!-- Actions dynamically injected by JS -->
+                    </div>
+                </div>
+
+            </div>
+            
+            <!-- MODULES PAGE -->
+            <div id="modules" class="page">
+                <h1 class="text-4xl font-bold mb-6 neon-text">Learning Modules</h1>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="p-6 bg-secondary-bg rounded-xl neon-border text-center">🏙️ Smart City</div>
+                    <div class="p-6 bg-secondary-bg rounded-xl neon-border text-center">🌾 AgriTech</div>
+                    <div class="p-6 bg-secondary-bg rounded-xl neon-border text-center">⚡ Sustainability</div>
+                    <div class="p-6 bg-secondary-bg rounded-xl neon-border text-center">⚖️ Ethics & AI</div>
+                </div>
+            </div>
+
+            <!-- LEADERBOARD PAGE -->
+            <div id="leaderboard" class="page">
+                <h1 class="text-4xl font-bold mb-6 neon-text">Global Leaderboard</h1>
+                <div class="bg-secondary-bg p-6 rounded-xl">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="text-gray-400 border-b border-gray-700">
+                                <th class="py-2">Rank</th>
+                                <th class="py-2">Student</th>
+                                <th class="py-2">Gaia Coins</th>
+                                <th class="py-2">ELS Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b border-gray-800">
+                                <td class="py-3 font-bold neon-text">1</td>
+                                <td class="py-3">Current User</td>
+                                <td class="py-3 text-yellow-400 font-mono" id="leaderboard-coins">${gaiaCoins}</td>
+                                <td class="py-3 text-green-400">92.5</td>
+                            </tr>
+                            <tr>
+                                <td class="py-3">2</td>
+                                <td class="py-3">Aether Team</td>
+                                <td class="py-3 text-yellow-400 font-mono">1450</td>
+                                <td class="py-3 text-yellow-400">88.1</td>
+                            </tr>
+                            <tr>
+                                <td class="py-3">3</td>
+                                <td class="py-3">Nebula Group</td>
+                                <td class="py-3 text-yellow-400 font-mono">1120</td>
+                                <td class="py-3 text-yellow-400">79.9</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- 3. FOOTER -->
+        <footer class="p-4 bg-secondary-bg mt-auto">
+            <div class="text-center text-sm text-gray-500">
+                &copy; 2024 NeuroLearn Gaia Demo | Built for Hackathons | Tech Stack Simulated: React, Three.js, Tailwind, Gemini AI
+            </div>
+        </footer>
+
+    </div>
+
+</body>
+</html>
