@@ -96,3 +96,72 @@ Node.js / Express server
 ```bash
 git clone https://github.com/senushidinara/neurolearn.git
 cd neurolearn
+
+
+Frontend
+cd src
+npm install
+npm run dev
+# Open http://localhost:3000
+Backend
+cd backend
+npm install
+npm run start
+# API runs at http://localhost:5000
+Optional ML Simulation:
+pip install -r requirements.txt
+python3 ml_simulator/train_script.py
+# Outputs simulated model accuracy and dummy .pkl
+
+
+🛣️ Roadmap
+	•	Integrate real biometric sensors (EEG/GSR)
+	•	Implement persistent storage (Firestore/MongoDB)
+	•	Advanced gamification: missions & Gaia Coins marketplace
+	•	MLOps pipeline for automated model retraining
+
+🤝 Contributing
+	•	Enhance Three.js Gaia Globe
+	•	Add Scenario Cards in src/data/scenarios.json
+	•	Improve Emotion AI simulation
+
+Open a Pull Request with a detailed description.
+
+⚖️ License
+
+MIT License. See LICENSE.
+🛣️ Roadmap
+	•	Integrate real biometric sensors (EEG/GSR)
+	•	Implement persistent storage (Firestore/MongoDB)
+	•	Advanced gamification: missions & Gaia Coins marketplace
+	•	MLOps pipeline for automated model retraining
+
+🤝 Contributing
+	•	Enhance Three.js Gaia Globe
+	•	Add Scenario Cards in src/data/scenarios.json
+	•	Improve Emotion AI simulation
+
+Open a Pull Request with a detailed description.
+
+⚖️ License
+
+MIT License. See LICENSE.
+🛣️ Roadmap
+	•	Integrate real biometric sensors (EEG/GSR)
+	•	Implement persistent storage (Firestore/MongoDB)
+	•	Advanced gamification: missions & Gaia Coins marketplace
+	•	MLOps pipeline for automated model retraining
+
+🤝 Contributing
+	•	Enhance Three.js Gaia Globe
+	•	Add Scenario Cards in src/data/scenarios.json
+	•	Improve Emotion AI simulation
+
+Open a Pull Request with a detailed description.
+
+⚖️ License
+
+MIT License. See LICENSE.<p align="center">
+Made with ❤️ for Ethical AI & EdTech Innovation
+</p>
+```
